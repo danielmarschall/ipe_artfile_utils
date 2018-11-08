@@ -1,0 +1,56 @@
+
+ART FILES BY IMAGINATION PILOTS
+Technical overview by Daniel Marschall						15 Feb 2018
+
+
+		VERSION 1.x (16-bit era, "IPE16")
+		=================================
+
+Version 1.0	For game: "Blown Away" (1994)
+		* File signature "Art" + 20 NUL bytes
+		* Image names up to 23 characters
+		  (unsure if the 23th byte must be a zero terminator)
+		* LZW implementation: GIF standard implementation
+		  - variable code length between 9 and 12 bits
+		  - clear code (256)
+		  - end code (257)
+		* Pictures can only be 8-bit
+		* Each picture can either be LZW compressed (code "P")
+		  or uncompressed (code "p", lower case)
+		* Decompressed/raw data: Top-down pixel data
+		* Attached: Optional palette (R,G,B), uncompressed.
+		  (Sprites usually do not have a palette, so the game
+		   will use the palette of the parent picture)
+
+Version 1.1	For games: "Panic in the Park" (1995)
+		           "Where's Waldo? At the Circus" (1995)
+		* Codes for compression/raw are now "Q" and "q" instead of
+                  "P" and "p"
+		* Each picture has now a relative X- and Y-offsets for 'fine-tuning'.
+		  These offsets cannot be negative, though.
+
+		VERSION 2.x (32-bit era, "IPE32")
+		=================================
+
+Version 2.0	For games: "Where's Waldo? Exploring Geography" (1996)
+		           "Eraser Turnabout" (1997)
+		           "Virtual K'Nex" (1998)
+		* File signature "ART_DATA"
+		* Image names up to 8 characters;
+		  no zero termination required after the 8 characters.
+		* LZW implementation by Mark R. Nelson and Shawn M. Regan
+		  - variable code length between 9 and 13 bits
+		  - clear code (256)
+		  - end code (257)
+		* Pictures are divided into chunks. Each chunk can be compressed or
+		  uncompressed. Limitations:
+		  - Each compressed chunk (except the last one) must decode into
+		    exactly 16382 (0x3FFE) bytes of uncompressed data.
+		  - The size of the compressed data of a chunk must not exceed the
+		    size of the original uncompressed data.
+		* The size of each chunk (raw or compressed) is limited
+		  to max. 32767 Bytes (0x7FFF).
+		* Decompressed/raw data: Windows Bitmap (without file header);
+		  therefore, theoretically every color depth/compression/etc. can be used.
+		  For 8-bit pictures, the palette is included in the Bitmap.
+		* Re-using of parent palette is not possible.

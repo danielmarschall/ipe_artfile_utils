@@ -1,0 +1,103 @@
+/**
+ * LZW Decoder for Imagination Pilots Entertainment 32-bit games (IPE32)
+ * - Eraser Turnabout by Imagination Pilots
+ * ART file packer and unpacker by Daniel Marschall, ViaThinkSoft (C) 2018
+ * Revision: 2018-02-02
+ **/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "ipe32_lzw_decoder.h"
+
+#define MIN_CODESIZE   9
+#define MAX_CODESIZE   13
+
+#define CLEAR_CODE     0x100
+#define END_CODE       0x101
+#define NEXT_FREE_CODE 0x102
+#define MAX_CODE       0x1FF
+
+// Returns: Bytes written
+uint32_t ipe32lzw_decode(unsigned char* arg_lzwInputBuffer, const size_t arg_maxReadBytes, unsigned char* arg_outputBuffer) {
+	thread_local static int dict_X[9030]={0}; // TODO: size?
+	thread_local static int dict_Y[9030]={0}; // TODO: size?
+	thread_local static unsigned char dict_Z[16000]={0}; // TODO: size?
+
+	int currentCode, prevCode, prevCode2;
+	int bitsInBuffer = 0;
+	int gelesenesDWORD = 0;
+	unsigned char* outputBuffer = arg_outputBuffer;
+	unsigned char* lastCompleteInputBufferPos = arg_lzwInputBuffer;
+	unsigned char* inputBufferEndPos = arg_lzwInputBuffer + arg_maxReadBytes;
+
+	uint32_t dictionaryEmpty = 1;
+	uint32_t code_size       = MIN_CODESIZE;
+	uint32_t nextFreeCode    = NEXT_FREE_CODE;
+	uint32_t currentMaxCode  = MAX_CODE;
+
+	while (1) {
+		if (bitsInBuffer <= 24) {
+			if (lastCompleteInputBufferPos < inputBufferEndPos) {
+				gelesenesDWORD |= (unsigned int)*lastCompleteInputBufferPos << (24-bitsInBuffer);
+				lastCompleteInputBufferPos++;
+			}
+			bitsInBuffer += 8;
+		} else {
+			currentCode = (unsigned int)gelesenesDWORD >> ((32-code_size) & 0xFF);
+			gelesenesDWORD = (unsigned int)gelesenesDWORD << code_size;
+			bitsInBuffer -= code_size;
+
+			if (currentCode == END_CODE) {
+				return outputBuffer - arg_outputBuffer;
+			} else {
+				if (dictionaryEmpty == 1) {
+					dictionaryEmpty = 0;
+					prevCode = currentCode;
+					prevCode2 = currentCode;
+					*outputBuffer = currentCode & 0xFF;
+					outputBuffer++;
+				} else {
+					if (currentCode == CLEAR_CODE) {
+						dictionaryEmpty = 1;
+						code_size = 9;
+						nextFreeCode = 0x102;
+						currentMaxCode = 0x1FF;
+					} else {
+						int idx_Z = 0, code;
+						if (currentCode < nextFreeCode) {
+							code = currentCode;
+						} else {
+							code = prevCode;
+							dict_Z[idx_Z++] = prevCode2;
+						}
+
+						while (code > 0xFF) {
+							dict_Z[idx_Z++] = dict_X[code];
+							code = dict_Y[code];
+						}
+						dict_Z[idx_Z] = prevCode2 = code;
+
+						do {
+							*outputBuffer = dict_Z[idx_Z];
+							outputBuffer++;
+						} while (--idx_Z >= 0);
+
+						if (nextFreeCode <= currentMaxCode) {
+							dict_Y[nextFreeCode] = prevCode;
+							dict_X[nextFreeCode] = prevCode2;
+							nextFreeCode++;
+							if ((nextFreeCode == currentMaxCode) && (code_size < MAX_CODESIZE)) {
+								currentMaxCode = (1 << ++code_size) - 1;
+							}
+						}
+
+						prevCode = currentCode;
+					}
+				}
+			}
+		}
+	}
+}

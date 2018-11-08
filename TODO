@@ -1,0 +1,6 @@
+
+Future: Allow several input arguments (e.g. *.ART)
+
+Packer: Like the unpacker, implement a simulation mode (so that no ART file is written)
+
+Please see also : grep -r "// TODO"

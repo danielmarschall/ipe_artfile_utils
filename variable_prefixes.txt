@@ -1,0 +1,7 @@
+My variable prefixes:
+
+fit = text file input handle ("rt")
+fib = binary file input handle ("rb")
+
+fot = text file output handle ("ot")
+fob = binary file output handle ("ob")
