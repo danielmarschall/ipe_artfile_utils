@@ -1,11 +1,11 @@
 /**
  * IPMA video frame extractor by Daniel Marschall, ViaThinkSoft (C) 2022
  * Supports codecs IPMA and IP20
- * Revision: 2022-01-15
+ * Revision: 2022-01-16
  * License: Apache 2.0
  **/
 
-#define VERSION "2022-01-15"
+#define VERSION "2022-01-16"
 
 #define _CRT_SECURE_NO_WARNINGS
 // #define VISUAL_STUDIO_TEST
@@ -378,11 +378,15 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 			return false;
 		}
 
-		int bufsiz_uncompressed = pstrf->bi.biSizeImage;
-		int bufsiz_compressed = pstrf->bi.biSizeImage * 1000; // for some reason, compressed can sometimes be larger than uncompressed, so we multiply by 1000
-		if (bufsiz_uncompressed != (asi1.rcFrame.right - asi1.rcFrame.left) * (asi1.rcFrame.bottom - asi1.rcFrame.top)) {
-			printf("WARNING: biSizeImage != rectWidth * rectHeight\n");
-		}
+		// Note that for 2 files, bi.biSizeImage is wrong (much too small!)
+		// LB05M08.AVI: biSizeImage (10598) != rectWidth * rectHeight (27492)
+		// TY06M12.AVI: biSizeImage  (1274) != rectWidth * rectHeight  (8058)
+		//int bufsiz_uncompressed = pstrf->bi.biSizeImage;
+		int bufsiz_uncompressed = (asi1.rcFrame.right - asi1.rcFrame.left) * (asi1.rcFrame.bottom - asi1.rcFrame.top);
+		
+		// theoretically, compressed can sometimes be larger than uncompressed, so we multiply by 10
+		int bufsiz_compressed = bufsiz_uncompressed * 10;
+
 		unsigned char* buffer_uncompressed = (unsigned char*)malloc(bufsiz_uncompressed);
 		if (buffer_uncompressed == NULL) return false;
 		unsigned char* buffer_compressed = (unsigned char*)malloc(bufsiz_compressed);
