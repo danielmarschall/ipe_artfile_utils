@@ -2,7 +2,7 @@
 
 The IPE Artfile Packer/Unpacker tool let you pack and unpack ART files of games by Imagination Pilots, so that you can extract and modify the graphics of the game.
 
-Following games are supported:
+The following games are supported:
 - "Blown Away" (1994)
 - "Panic in the Park" (1995)
 - "Where's Waldo? At the Circus" (1995)
@@ -43,3 +43,31 @@ Arguments:
 -o Output ART files
 
 -t Game type (ba, pip, waldo, waldo2, eraser or knex)
+
+
+
+# Imagination Pilots Transparent Video Frame Extractor
+
+Extracts video frames from `IPMA` and `IP20` coded AVI files into Bitmap files
+
+The following games are supported:
+- "Blown Away" (1994)
+- "Panic in the Park" (1995)
+- "Where's Waldo? At the Circus" (1995)
+- "Where's Waldo? Exploring Geography" (1996)
+
+This tool is only available on Windows, since it requires the "Video for Windows" API.
+
+More information about the codecs can be found here: https://misc.daniel-marschall.de/spiele/blown_away/ipma_codec/
+
+## Syntax
+
+Example:
+
+    ipma_frame_extractor -i inputfile -o outputdir
+
+Arguments:
+
+-i Input file (AVI)
+
+-o Output directory (will be created if it does not exist)
