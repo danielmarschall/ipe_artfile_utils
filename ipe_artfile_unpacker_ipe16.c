@@ -177,7 +177,7 @@ bool ipe16_extract_art_to_folder(FILE* fibArt, const char* szDestFolder, const i
 			}
 
 			if (strlen(szDestFolder) > 0) {
-				char szAbsoluteBitmapFilename[MAX_FILE];
+				char szAbsoluteBitmapFilename[MAX_FILE+1];
 				sprintf(szAbsoluteBitmapFilename, "%s/%s", szDestFolder, szBitmapFilename);
 				FILE* fobBitmap = fopen(szAbsoluteBitmapFilename, "wb");
 				if (!fobBitmap) {
@@ -260,7 +260,7 @@ bool ipe16_extract_art_to_folder(FILE* fibArt, const char* szDestFolder, const i
 			}
 
 			if (strlen(szDestFolder) > 0) {
-				char szAbsoluteBitmapFilename[MAX_FILE];
+				char szAbsoluteBitmapFilename[MAX_FILE+1];
 				sprintf(szAbsoluteBitmapFilename, "%s/%s", szDestFolder, szBitmapFilename);
 				FILE* fobBitmap = fopen(szAbsoluteBitmapFilename, "wb");
 				if (!fobBitmap) {
