@@ -273,11 +273,8 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 	PAVISTREAM pStream1;
 	AVISTREAMINFOA asi1;
 
-	if (!CreateDirectoryA(outdir, NULL)) {
-		// Also happens if the directory already exists...
-		//printf("ERROR: Could not create directory %s\n", outdir);
-		//return false;
-	}
+	// Try creating the directory
+	CreateDirectoryA(outdir, NULL);
 
 	if (!dirExists(outdir)) {
 		fprintf(stderr, "ERROR: Directory couldn't be created! %s\n", outdir);
@@ -286,27 +283,27 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 
 	res = AVIFileOpenA(&pFile, filename, OF_SHARE_DENY_WRITE, 0L);
 	if (res == AVIERR_FILEOPEN) {
-		printf("ERROR: AVIFileOpenA(%s) returns AVIERR_FILEOPEN. Does the file exist?\n", filename);
+		fprintf(stderr, "ERROR: AVIFileOpenA(%s) returns AVIERR_FILEOPEN. Does the file exist?\n", filename);
 		return false;
 	}
 	if (res != 0) {
-		printf("ERROR: AVIFileOpenA(%s) returns %d\n", filename, res);
+		fprintf(stderr, "ERROR: AVIFileOpenA(%s) returns %d\n", filename, res);
 		return false;
 	}
 
 	res = AVIFileGetStream(pFile, &pStream1, streamtypeVIDEO, 0);
 	if (res == AVIERR_NODATA) {
-		printf("ERROR: AVIFileGetStream returns AVIERR_NODATA\n");
+		fprintf(stderr, "ERROR: AVIFileGetStream returns AVIERR_NODATA\n");
 		AVIFileRelease(pFile);
 		return false;
 	}
 	if (res == AVIERR_MEMORY) {
-		printf("ERROR: AVIFileGetStream returns AVIERR_MEMORY\n");
+		fprintf(stderr, "ERROR: AVIFileGetStream returns AVIERR_MEMORY\n");
 		AVIFileRelease(pFile);
 		return false;
 	}
 	if (res != 0) {
-		printf("ERROR: AVIFileGetStream returns %d\n", res);
+		fprintf(stderr, "ERROR: AVIFileGetStream returns %d\n", res);
 		AVIFileRelease(pFile);
 		return false;
 	}
@@ -314,7 +311,7 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 
 	res = AVIStreamInfoA(pStream1, &asi1, sizeof(asi1));
 	if (res != 0) {
-		printf("ERROR: AVIStreamInfoA returns %d\n", res);
+		fprintf(stderr, "ERROR: AVIStreamInfoA returns %d\n", res);
 		AVIStreamRelease(pStream1);
 		AVIFileRelease(pFile);
 		return false;
@@ -343,7 +340,7 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 	}
 
 	if (ipmaVersion == 0) {
-		printf("ERROR: Not an IPMA or IP20 AVI file!\n");
+		fprintf(stderr, "ERROR: Not an IPMA or IP20 AVI file!\n");
 		AVIStreamRelease(pStream1);
 		AVIFileRelease(pFile);
 		return false;
@@ -360,7 +357,7 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 		//res = pStream1->ReadFormat(i, (LPVOID)pstrf, &strf_siz);
 		res = AVIStreamReadFormat(pStream1, i, (LPVOID)pstrf, &strf_siz);
 		if (res != 0) {
-			printf("ERROR: Read format info failed\n");
+			fprintf(stderr, "ERROR: Read format info failed\n");
 			AVIStreamRelease(pStream1);
 			AVIFileRelease(pFile);
 			return false;
@@ -371,8 +368,8 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 			((ipmaVersion == 2) && (asi1.fccHandler != mmioFOURCC('I', 'p', '2', '0'))))
 		{
 			// biCompression is case-sensitive and must be "Ipma" or "Ip20"
-			if (ipmaVersion == 1) printf("ERROR: biCompression is not Ipma!\n");
-			if (ipmaVersion == 2) printf("ERROR: biCompression is not Ip20!\n");
+			if (ipmaVersion == 1) fprintf(stderr, "ERROR: biCompression is not Ipma!\n");
+			if (ipmaVersion == 2) fprintf(stderr, "ERROR: biCompression is not Ip20!\n");
 			AVIStreamRelease(pStream1);
 			AVIFileRelease(pFile);
 			return false;
@@ -399,14 +396,22 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 		res = AVIStreamRead(pStream1, i, 1, buffer_compressed, bufsiz_compressed, &plBytes, &plSamples);
 		if ((res != 0) || (plSamples == 0)) break;
 
-		Ipe16LZWDecoder* pdecoder = (Ipe16LZWDecoder*)malloc(sizeof(Ipe16LZWDecoder));
-		if (pdecoder == NULL) return false;
-		ZeroMemory(pdecoder, sizeof(Ipe16LZWDecoder));
-		unsigned char* work_buffer_compressed = buffer_compressed;
-		int plBytesUncompressed = ipma_lzw_decode(&work_buffer_compressed, pdecoder, buffer_uncompressed, bufsiz_uncompressed);
-		free(pdecoder);
-		if (plBytesUncompressed < 0) printf("WARNING: LZW Error %d at frame %d\n", plBytesUncompressed, i);
-		if (plBytesUncompressed != bufsiz_uncompressed) printf("WARNING: piBytesUncompressed != bufsiz_uncompressed\n");
+		int plBytesUncompressed;
+		if ((plBytes == 0) && (plSamples > 0)) {
+			// In "Panic in the Park", frames at the end of some videos have 0 bytes data.
+			// This should be interpreted as "repeat frame" (still image). So we fill it with palette #0 (transparent)
+			plBytesUncompressed = bufsiz_uncompressed;
+			ZeroMemory(buffer_uncompressed, bufsiz_uncompressed);
+		} else {
+			Ipe16LZWDecoder* pdecoder = (Ipe16LZWDecoder*)malloc(sizeof(Ipe16LZWDecoder));
+			if (pdecoder == NULL) return false;
+			ZeroMemory(pdecoder, sizeof(Ipe16LZWDecoder));
+			unsigned char* work_buffer_compressed = buffer_compressed;
+			plBytesUncompressed = ipma_lzw_decode(&work_buffer_compressed, pdecoder, buffer_uncompressed, bufsiz_uncompressed);
+			free(pdecoder);
+		}
+		if (plBytesUncompressed < 0) fprintf(stderr, "WARNING: LZW Error %d at frame %d\n", plBytesUncompressed, i);
+		if (plBytesUncompressed != bufsiz_uncompressed) fprintf(stderr, "WARNING: piBytesUncompressed != bufsiz_uncompressed\n");
 		if (plBytesUncompressed > 0) {
 			char filnam[MAX_PATH];
 			if (AVIStreamIsKeyFrame(pStream1, i)) {
@@ -425,7 +430,7 @@ bool ipma_export_frames_bmp(char* filename, char* outdir)
 		free(buffer_uncompressed);
 	}
 
-	printf("%s: %d frames written to %s\n", filename, framesWritten, outdir);
+	fprintf(stdout, "%s: %d frames written to %s\n", filename, framesWritten, outdir);
 
 	AVIStreamRelease(pStream1);
 	AVIFileRelease(pFile);
