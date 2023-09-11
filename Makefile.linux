@@ -1,4 +1,7 @@
 
+# On Linux, run:
+# make -f Makefile.linux clean && make -f Makefile.linux
+
 all: ipe_artfile_unpacker ipe_artfile_packer
 
 ipe_artfile_unpacker: ipe_artfile_unpacker.c ipe_artfile_unpacker_ipe16.c ipe_artfile_unpacker_ipe32.c ipe16_lzw_decoder.c ipe32_lzw_decoder.c ipe16_bmpexport.c ipe32_bmpexport.c utils.c
@@ -23,7 +26,7 @@ ipe_artfile_packer: ipe_artfile_packer.c ipe_artfile_packer_ipe16_ba.c ipe_artfi
 	gcc -std=c99 -Wall -c ipe16_bmpimport.c -o ipe16_bmpimport.o
 	gcc -std=c99 -Wall -c ipe32_bmpimport.c -o ipe32_bmpimport.o
 	gcc -std=c99 -Wall -c utils.c -o utils.o
-	gcc -lm -o ipe_artfile_packer ipe_artfile_packer.o ipe_artfile_packer_ipe16_ba.o ipe_artfile_packer_ipe16_pip.o ipe_artfile_packer_ipe32.o ipe16_lzw_encoder.c ipe32_lzw_encoder.o ipe16_bmpimport.o ipe32_bmpimport.o utils.o
+	gcc -o ipe_artfile_packer ipe_artfile_packer.o ipe_artfile_packer_ipe16_ba.o ipe_artfile_packer_ipe16_pip.o ipe_artfile_packer_ipe32.o ipe16_lzw_encoder.c ipe32_lzw_encoder.o ipe16_bmpimport.o ipe32_bmpimport.o utils.o -lm
 	rm *.o
 
 clean:
